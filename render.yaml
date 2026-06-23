@@ -7,6 +7,8 @@ services:
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: ACCESS_PASSWORD
+        sync: false
       - key: TEMPLATE_PATH
         value: /opt/render/project/src/website-template
       - key: OUTPUT_PATH

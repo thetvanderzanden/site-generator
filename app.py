@@ -37,70 +37,145 @@ UPLOAD_FORM = """<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Site Generator</title>
   <style>
+    :root {
+      --purple: #4B2882;
+      --magenta: #C0245A;
+      --blue: #3A6FC4;
+      --dark: #1A1A2E;
+      --light-bg: #F7F6FA;
+      --white: #FFFFFF;
+      --text: #2D2D3A;
+      --text-light: #666680;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, sans-serif;
-      background: #0f0f1a;
-      color: #e0e0f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--light-bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
+      flex-direction: column;
+    }
+    header {
+      background: linear-gradient(135deg, #1A1A2E 0%, #2C1654 50%, #1E3C72 100%);
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(192,36,90,0.2);
+      border: 1px solid rgba(192,36,90,0.4);
+      color: #F06090;
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 0.35rem 0.9rem; border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+    header h1 {
+      font-size: 2rem; font-weight: 800; color: var(--white);
+      margin-bottom: 0.5rem; line-height: 1.2;
+    }
+    header h1 span {
+      background: linear-gradient(90deg, #E0609A, #6B9FE4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    header p {
+      font-size: 0.95rem; color: rgba(255,255,255,0.65); max-width: 440px; margin: 0 auto;
+    }
+    .gradient-divider {
+      height: 4px;
+      background: linear-gradient(90deg, var(--purple), var(--magenta), var(--blue));
+    }
+    main {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 1.5rem;
     }
     .card {
-      background: #1a1a2e;
-      border: 1px solid #2a2a4a;
-      border-radius: 16px;
+      background: var(--white);
+      border-radius: 18px;
       padding: 2.5rem;
       width: 100%;
       max-width: 520px;
+      box-shadow: 0 8px 40px rgba(74,40,130,0.12);
     }
-    h1 { font-size: 1.6rem; margin-bottom: 0.4rem; }
-    .sub { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
-    label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #a0a0c0; }
-    .field { margin-bottom: 1.4rem; }
+    .card-title { font-size: 1.3rem; font-weight: 800; color: var(--dark); }
+    .card-sub { font-size: 0.9rem; color: var(--text-light); margin-top: 0.3rem; }
+    .modal-divider {
+      height: 3px; border-radius: 2px;
+      background: linear-gradient(90deg, var(--purple), var(--magenta), var(--blue));
+      margin: 1.25rem 0;
+    }
+    .field { margin-bottom: 1.2rem; }
+    label {
+      display: block;
+      font-size: 0.82rem; font-weight: 600; color: var(--dark);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 0.4rem;
+    }
+    input[type="password"],
     input[type="file"] {
       width: 100%;
-      background: #0f0f1a;
-      border: 1px solid #333;
+      background: var(--white);
+      border: 1.5px solid #DDD;
       border-radius: 8px;
       padding: 0.7rem 1rem;
-      color: #e0e0f0;
-      font-size: 0.9rem;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input[type="password"]:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(74,40,130,0.12);
     }
     button {
       width: 100%;
-      padding: 0.9rem;
-      background: linear-gradient(135deg, #4B2882, #3A6FC4);
-      color: #fff;
+      padding: 0.9rem 2rem;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: var(--white);
       border: none;
       border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 700;
+      font-size: 1rem; font-weight: 700; font-family: inherit;
       cursor: pointer;
-      transition: opacity 0.2s;
+      transition: opacity 0.2s, transform 0.2s;
+      box-shadow: 0 4px 18px rgba(74,40,130,0.3);
+      margin-top: 0.5rem;
     }
-    button:hover { opacity: 0.88; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
     #status {
       margin-top: 1.2rem;
       font-size: 0.9rem;
-      color: #6B9FE4;
+      color: var(--blue);
       min-height: 1.4rem;
+      text-align: center;
     }
-    .error { color: #E06090; }
+    .error { color: var(--magenta) !important; }
+    footer {
+      background: var(--dark); color: rgba(255,255,255,0.5);
+      padding: 1.25rem 2rem; text-align: center; font-size: 0.82rem;
+    }
   </style>
 </head>
 <body>
+  <header>
+    <div class="header-badge">Rogue Coding — Internal Tool</div>
+    <h1>Site <span>Generator</span></h1>
+    <p>Upload a logo and business plan to generate a ready-to-deploy website.</p>
+  </header>
+  <div class="gradient-divider"></div>
+
+  <main>
   <div class="card">
-    <h1>Site Generator</h1>
-    <p class="sub">Upload a logo and business plan to generate a ready-to-deploy website.</p>
+    <div class="card-title">Generate a New Site</div>
+    <div class="card-sub">Provide your credentials and files below to get started.</div>
+    <div class="modal-divider"></div>
 
     <form id="form" enctype="multipart/form-data">
       <div class="field">
         <label for="password">Access Password</label>
-        <input type="password" id="password" name="password" placeholder="Enter password" required style="width:100%;background:#0f0f1a;border:1px solid #333;border-radius:8px;padding:0.7rem 1rem;color:#e0e0f0;font-size:0.9rem;" />
+        <input type="password" id="password" name="password" placeholder="Enter password" required />
       </div>
       <div class="field">
         <label for="logo">Company Logo (PNG, JPG, SVG)</label>
@@ -114,6 +189,9 @@ UPLOAD_FORM = """<!DOCTYPE html>
     </form>
     <div id="status"></div>
   </div>
+  </main>
+
+  <footer>&copy; 2026 Rogue Coding &mdash; Internal Use Only</footer>
 
   <script>
     document.getElementById('form').addEventListener('submit', async e => {

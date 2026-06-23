@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+output/
+output-preview/
+uploads/
+*.zip
+test-logo.png
+test-plan.docx
+static/

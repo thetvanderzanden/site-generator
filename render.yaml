@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: site-generator
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TEMPLATE_PATH
+        value: /opt/render/project/src/website-template
+      - key: OUTPUT_PATH
+        value: /tmp/output
+    plan: free

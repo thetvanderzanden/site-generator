@@ -4,6 +4,7 @@ Reads a .docx business plan and uses Claude to extract structured site data.
 
 import json
 import re
+import urllib.request
 import anthropic
 from docx import Document
 
@@ -47,15 +48,45 @@ Business plan document:
 """
 
 
-def extract_business_data(docx_path: str) -> dict:
+def _fetch_style_hints(url: str) -> str:
+    """Fetch a page and return its CSS + meta content for color/tone analysis."""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read(80_000).decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+    # Pull <style> blocks
+    styles = re.findall(r"<style[^>]*>(.*?)</style>", html, re.DOTALL | re.IGNORECASE)
+    # Pull meta description / og:description for tone
+    meta = re.findall(r'<meta[^>]+content=["\']([^"\']{10,})["\']', html, re.IGNORECASE)
+
+    combined = "\n".join(styles[:3]) + "\n" + "\n".join(meta[:5])
+    return combined[:6000]
+
+
+def extract_business_data(docx_path: str, reference_url: str | None = None) -> dict:
     text = extract_text_from_docx(docx_path)
+
+    prompt = EXTRACTION_PROMPT + text
+
+    if reference_url:
+        style_hints = _fetch_style_hints(reference_url)
+        if style_hints:
+            prompt += (
+                f"\n\nReference site for color and tone inspiration ({reference_url}):\n"
+                "Use the CSS below to infer the color palette (color_primary, color_accent, color_action) "
+                "and match the overall tone of the copy to this site's style.\n\n"
+                + style_hints
+            )
 
     client = anthropic.Anthropic()
     message = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
         messages=[
-            {"role": "user", "content": EXTRACTION_PROMPT + text}
+            {"role": "user", "content": prompt}
         ]
     )
 

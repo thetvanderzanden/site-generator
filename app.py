@@ -213,6 +213,10 @@ UPLOAD_FORM = """<!DOCTYPE html>
         <input type="file" id="doc" name="doc" accept=".docx" required />
       </div>
       <div class="field">
+        <label for="ref_url">Reference Site URL <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-light)">(optional — match color &amp; tone)</span></label>
+        <input type="url" id="ref_url" name="ref_url" placeholder="https://example.com" style="width:100%;background:var(--white);border:1.5px solid #DDD;border-radius:8px;padding:0.7rem 1rem;color:var(--text);font-size:0.95rem;font-family:inherit;outline:none;transition:border-color 0.2s,box-shadow 0.2s;" />
+      </div>
+      <div class="field">
         <span class="section-label">Sections to Include</span>
         <div class="section-toggles">
           <label class="toggle-item">
@@ -319,8 +323,10 @@ def generate():
         logo_file.save(logo_path)
         doc_file.save(doc_path)
 
+        ref_url = request.form.get("ref_url", "").strip() or None
+
         try:
-            data = extract_business_data(str(doc_path))
+            data = extract_business_data(str(doc_path), reference_url=ref_url)
         except Exception as e:
             return jsonify(error=f"Claude extraction failed: {e}"), 500
 

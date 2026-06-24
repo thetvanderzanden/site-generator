@@ -58,7 +58,43 @@ def _service_ld_json(services: list[str]) -> str:
     return ",\n".join(items)
 
 
-def populate_template(data: dict, logo_src: str, template_dir: str, output_dir: str) -> str:
+_SECTION_COMMENTS = {
+    "stats":    "STATS BAR",
+    "about":    "ABOUT",
+    "services": "SERVICES",
+    "team":     "TEAM",
+    "contact":  "CONTACT",
+}
+
+_NAV_LINKS = {
+    "about":    '      <li><a href="#about">About</a></li>',
+    "services": '      <li><a href="#services">Services</a></li>',
+    "team":     '      <li><a href="#team">Team</a></li>',
+    "contact":  '      <li><a href="#contact" class="nav-cta">Contact Us</a></li>',
+}
+
+_ALL_SECTIONS = list(_SECTION_COMMENTS.keys())
+
+
+def _strip_sections(html: str, enabled: set) -> str:
+    for i, key in enumerate(_ALL_SECTIONS):
+        if key in enabled:
+            continue
+        tag = _SECTION_COMMENTS[key]
+        is_last = (key == "contact")
+        if is_last:
+            stop = r'\n\n  <div class="gradient-divider" role="presentation"></div>\n\n  </main>'
+        else:
+            next_tag = _SECTION_COMMENTS[_ALL_SECTIONS[i + 1]]
+            stop = rf'\n\n  <!-- {re.escape(next_tag)}'
+        pattern = rf'\n\n  <!-- {re.escape(tag)}.+?(?={stop})'
+        html = re.sub(pattern, "", html, flags=re.DOTALL)
+        if key in _NAV_LINKS:
+            html = html.replace("\n" + _NAV_LINKS[key], "")
+    return html
+
+
+def populate_template(data: dict, logo_src: str, template_dir: str, output_dir: str, sections: set | None = None) -> str:
     """
     Reads index.html from template_dir, substitutes all placeholders,
     copies the logo, and writes the result to output_dir.
@@ -233,6 +269,10 @@ def populate_template(data: dict, logo_src: str, template_dir: str, output_dir: 
     # ── Form hidden fields ────────────────────────────────────────────────────
     html = html.replace(f"New Consultation Request — COMPANY NAME", f"New Consultation Request — {company}")
     html = html.replace(f"COMPANY NAME Website", f"{company} Website")
+
+    # ── Strip unselected sections ─────────────────────────────────────────────
+    if sections is not None:
+        html = _strip_sections(html, sections)
 
     # ── Write output ──────────────────────────────────────────────────────────
     out = Path(output_dir)

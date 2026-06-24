@@ -152,6 +152,33 @@ UPLOAD_FORM = """<!DOCTYPE html>
       text-align: center;
     }
     .error { color: var(--magenta) !important; }
+    .section-label {
+      font-size: 0.82rem; font-weight: 600; color: var(--dark);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 0.75rem; display: block;
+    }
+    .section-toggles {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+      margin-bottom: 1.2rem;
+    }
+    .toggle-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      background: var(--light-bg); border: 1.5px solid #DDD;
+      border-radius: 8px; padding: 0.6rem 0.9rem;
+      cursor: pointer; transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+    .toggle-item:has(input:checked) {
+      border-color: var(--purple);
+      background: rgba(74,40,130,0.06);
+    }
+    .toggle-item input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: var(--purple);
+      flex-shrink: 0; cursor: pointer;
+    }
+    .toggle-item span {
+      font-size: 0.88rem; font-weight: 600; color: var(--text);
+    }
     footer {
       background: var(--dark); color: rgba(255,255,255,0.5);
       padding: 1.25rem 2rem; text-align: center; font-size: 0.82rem;
@@ -184,6 +211,31 @@ UPLOAD_FORM = """<!DOCTYPE html>
       <div class="field">
         <label for="doc">Business Plan (.docx)</label>
         <input type="file" id="doc" name="doc" accept=".docx" required />
+      </div>
+      <div class="field">
+        <span class="section-label">Sections to Include</span>
+        <div class="section-toggles">
+          <label class="toggle-item">
+            <input type="checkbox" name="sections" value="stats" checked />
+            <span>Stats Bar</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" name="sections" value="about" checked />
+            <span>About</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" name="sections" value="services" checked />
+            <span>Services</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" name="sections" value="team" checked />
+            <span>Team</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" name="sections" value="contact" checked />
+            <span>Contact</span>
+          </label>
+        </div>
       </div>
       <button type="submit" id="btn">Generate Site</button>
     </form>
@@ -272,11 +324,12 @@ def generate():
         except Exception as e:
             return jsonify(error=f"Claude extraction failed: {e}"), 500
 
+        sections = set(request.form.getlist("sections")) or {"stats", "about", "services", "team", "contact"}
         company_slug = slugify(data.get("company_name", "site"))
         out_dir = tmp / company_slug
 
         try:
-            populate_template(data, str(logo_path), TEMPLATE_DIR, str(out_dir))
+            populate_template(data, str(logo_path), TEMPLATE_DIR, str(out_dir), sections=sections)
         except Exception as e:
             return jsonify(error=f"Template injection failed: {e}"), 500
 

@@ -21,7 +21,6 @@ load_dotenv()
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB
 
-ACCESS_PASSWORD = os.getenv("ACCESS_PASSWORD", "")
 
 TEMPLATE_DIR = os.getenv("TEMPLATE_PATH", str(Path(__file__).parent.parent / "Website Template"))
 OUTPUT_BASE  = os.getenv("OUTPUT_PATH",   str(Path(__file__).parent / "output"))
@@ -201,10 +200,6 @@ UPLOAD_FORM = """<!DOCTYPE html>
 
     <form id="form" enctype="multipart/form-data">
       <div class="field">
-        <label for="password">Access Password</label>
-        <input type="password" id="password" name="password" placeholder="Enter password" required />
-      </div>
-      <div class="field">
         <label for="logo">Company Logo (PNG, JPG, SVG)</label>
         <input type="file" id="logo" name="logo" accept=".png,.jpg,.jpeg,.svg,.webp,.gif,.bmp,.tiff,.tif,.ico,.avif,.heic,.heif" required />
       </div>
@@ -298,8 +293,6 @@ def index():
 
 @app.post("/generate")
 def generate():
-    if ACCESS_PASSWORD and request.form.get("password") != ACCESS_PASSWORD:
-        return jsonify(error="Incorrect password."), 401
 
     if "logo" not in request.files or "doc" not in request.files:
         return jsonify(error="Both 'logo' and 'doc' files are required."), 400

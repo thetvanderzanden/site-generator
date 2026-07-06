@@ -3,6 +3,7 @@ Reads a .docx business plan and uses Claude to extract structured site data.
 """
 
 import json
+import os
 import re
 import urllib.request
 import anthropic
@@ -81,7 +82,11 @@ def extract_business_data(docx_path: str, reference_url: str | None = None) -> d
                 + style_hints
             )
 
-    client = anthropic.Anthropic()
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
+
+    client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,

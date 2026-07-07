@@ -6,11 +6,12 @@ GET  /          — upload form UI
 
 import os
 import re
+import base64
 import zipfile
 import tempfile
 from pathlib import Path
 
-from flask import Flask, request, jsonify, send_file, render_template_string
+from flask import Flask, request, jsonify, render_template_string
 from dotenv import load_dotenv
 
 from extractor import extract_business_data
@@ -182,6 +183,39 @@ UPLOAD_FORM = """<!DOCTYPE html>
       background: var(--dark); color: rgba(255,255,255,0.5);
       padding: 1.25rem 2rem; text-align: center; font-size: 0.82rem;
     }
+    #preview {
+      display: none;
+      padding: 2rem 1.5rem 3rem;
+    }
+    .preview-header {
+      max-width: 1100px; margin: 0 auto 1rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    }
+    .preview-title { font-size: 1rem; font-weight: 700; color: var(--dark); }
+    .preview-sub { font-size: 0.85rem; color: var(--text-light); }
+    .download-btn {
+      display: inline-block;
+      padding: 0.7rem 1.6rem;
+      background: linear-gradient(135deg, var(--magenta), var(--purple));
+      color: var(--white);
+      border: none; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 700; font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(192,36,90,0.3);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .download-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .preview-frame-wrap {
+      max-width: 1100px; margin: 0 auto;
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 8px 50px rgba(74,40,130,0.18);
+      border: 1px solid rgba(74,40,130,0.15);
+    }
+    #previewFrame {
+      width: 100%; height: 80vh;
+      border: none; display: block;
+      background: #fff;
+    }
   </style>
 </head>
 <body>
@@ -242,6 +276,19 @@ UPLOAD_FORM = """<!DOCTYPE html>
   </div>
   </main>
 
+  <section id="preview">
+    <div class="preview-header">
+      <div>
+        <div class="preview-title">Site Preview</div>
+        <div class="preview-sub">This is how the generated site will look. Download to deploy.</div>
+      </div>
+      <button class="download-btn" id="downloadBtn">⬇ Download Site ZIP</button>
+    </div>
+    <div class="preview-frame-wrap">
+      <iframe id="previewFrame" sandbox="allow-same-origin allow-scripts" title="Generated site preview"></iframe>
+    </div>
+  </section>
+
   <footer>&copy; 2026 Rogue Coding &mdash; Internal Use Only</footer>
 
   <script>
@@ -261,14 +308,28 @@ UPLOAD_FORM = """<!DOCTYPE html>
           const err = await res.json();
           throw new Error(err.error || res.statusText);
         }
-        status.textContent = 'Building site…';
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'generated-site.zip';
-        a.click();
-        status.textContent = 'Done! Your site zip has been downloaded.';
+        status.textContent = 'Rendering preview…';
+        const data = await res.json();
+
+        // Show preview
+        const preview = document.getElementById('preview');
+        const frame = document.getElementById('previewFrame');
+        frame.srcdoc = data.html;
+        preview.style.display = 'block';
+
+        // Wire download button
+        const dlBtn = document.getElementById('downloadBtn');
+        dlBtn.onclick = () => {
+          const bytes = Uint8Array.from(atob(data.zip_b64), c => c.charCodeAt(0));
+          const blob = new Blob([bytes], { type: 'application/zip' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = data.filename;
+          a.click();
+        };
+
+        status.textContent = 'Site generated! Preview below.';
+        preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) {
         status.textContent = 'Error: ' + err.message;
         status.className = 'error';
@@ -337,18 +398,30 @@ def generate():
         except Exception as e:
             return jsonify(error=f"Template injection failed: {e}"), 500
 
+        # Build zip
         zip_path = tmp / f"{company_slug}.zip"
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for f in out_dir.rglob("*"):
                 if f.is_file():
                     zf.write(f, f.relative_to(out_dir))
 
-        return send_file(
-            str(zip_path),
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=f"{company_slug}-site.zip"
-        )
+        zip_b64 = base64.b64encode(zip_path.read_bytes()).decode()
+
+        # Build preview HTML with logo inlined as base64 data URL
+        logo_path_out = next(out_dir.glob("logo*"), None)
+        html_content = (out_dir / "index.html").read_text(encoding="utf-8")
+        if logo_path_out and logo_path_out.exists():
+            logo_ext_clean = logo_path_out.suffix.lstrip(".")
+            mime = "image/svg+xml" if logo_ext_clean == "svg" else f"image/{logo_ext_clean}"
+            logo_b64 = base64.b64encode(logo_path_out.read_bytes()).decode()
+            data_url = f"data:{mime};base64,{logo_b64}"
+            html_content = html_content.replace(logo_path_out.name, data_url)
+
+        return jsonify({
+            "html":     html_content,
+            "zip_b64":  zip_b64,
+            "filename": f"{company_slug}-site.zip"
+        })
 
 
 if __name__ == "__main__":

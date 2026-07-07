@@ -117,18 +117,21 @@ def populate_template(data: dict, logo_src: str, template_dir: str, output_dir: 
     services = data.get("services", ["Service 1", "Service 2", "Service 3"])
     industry = services[0] if services else "Professional Services"
 
-    # ── CSS colors ──────────────────────────────────────────────────────────
-    html = html.replace(
-        f"--color-primary: #4B2882;   /* REPLACE with brand primary */",
-        f"--color-primary: {data.get('color_primary', '#4B2882')};"
+    # ── CSS colors (regex replace so whitespace differences don't break it) ──
+    html = re.sub(
+        r'--color-primary\s*:[^;]+;',
+        f"--color-primary: {data.get('color_primary', '#4B2882')};",
+        html, count=1
     )
-    html = html.replace(
-        f"--color-accent:  #C0245A;   /* REPLACE with brand accent  */",
-        f"--color-accent:  {data.get('color_accent', '#C0245A')};"
+    html = re.sub(
+        r'--color-accent\s*:[^;]+;',
+        f"--color-accent:  {data.get('color_accent', '#C0245A')};",
+        html, count=1
     )
-    html = html.replace(
-        f"--color-action:  #3A6FC4;   /* REPLACE with brand action  */",
-        f"--color-action:  {data.get('color_action', '#3A6FC4')};"
+    html = re.sub(
+        r'--color-action\s*:[^;]+;',
+        f"--color-action:  {data.get('color_action', '#3A6FC4')};",
+        html, count=1
     )
 
     # ── Hero badge (must happen BEFORE CITY/STATE replacement) ───────────────

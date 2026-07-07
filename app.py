@@ -281,6 +281,7 @@ UPLOAD_FORM = """<!DOCTYPE html>
       <div>
         <div class="preview-title">Site Preview</div>
         <div class="preview-sub">This is how the generated site will look. Download to deploy.</div>
+        <div id="colorSwatches" style="margin-top:0.4rem;font-size:0.82rem;color:#666;display:flex;align-items:center;gap:4px;flex-wrap:wrap"></div>
       </div>
       <button class="download-btn" id="downloadBtn">⬇ Download Site ZIP</button>
     </div>
@@ -328,6 +329,14 @@ UPLOAD_FORM = """<!DOCTYPE html>
           a.click();
         };
 
+        // Show color swatches
+        const colors = data.colors || {};
+        const swatches = ['primary','accent','action'].map(k =>
+          colors[k] ? `<span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${colors[k]};vertical-align:middle;margin-right:4px;border:1px solid rgba(0,0,0,0.15)"></span><small style="font-size:0.75rem;color:#666;margin-right:12px">${colors[k]}</small>` : ''
+        ).join('');
+        if (swatches) {
+          document.getElementById('colorSwatches').innerHTML = 'Extracted colors: ' + swatches;
+        }
         status.textContent = 'Site generated! Preview below.';
         preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) {
@@ -420,7 +429,12 @@ def generate():
         return jsonify({
             "html":     html_content,
             "zip_b64":  zip_b64,
-            "filename": f"{company_slug}-site.zip"
+            "filename": f"{company_slug}-site.zip",
+            "colors": {
+                "primary": data.get("color_primary"),
+                "accent":  data.get("color_accent"),
+                "action":  data.get("color_action"),
+            }
         })
 
 

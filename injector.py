@@ -119,17 +119,17 @@ def populate_template(data: dict, logo_src: str, template_dir: str, output_dir: 
 
     # ── CSS colors (regex replace so whitespace differences don't break it) ──
     html = re.sub(
-        r'--color-primary\s*:[^;]+;',
+        r'--color-primary\s*:\s*[^;\n]+;',
         f"--color-primary: {data.get('color_primary', '#4B2882')};",
         html, count=1
     )
     html = re.sub(
-        r'--color-accent\s*:[^;]+;',
+        r'--color-accent\s*:\s*[^;\n]+;',
         f"--color-accent:  {data.get('color_accent', '#C0245A')};",
         html, count=1
     )
     html = re.sub(
-        r'--color-action\s*:[^;]+;',
+        r'--color-action\s*:\s*[^;\n]+;',
         f"--color-action:  {data.get('color_action', '#3A6FC4')};",
         html, count=1
     )

@@ -76,10 +76,12 @@ def extract_business_data(docx_path: str, reference_url: str | None = None) -> d
         style_hints = _fetch_style_hints(reference_url)
         if style_hints:
             prompt += (
-                f"\n\nReference site for color and tone inspiration ({reference_url}):\n"
-                "Use the CSS below to infer the color palette (color_primary, color_accent, color_action) "
-                "and match the overall tone of the copy to this site's style.\n\n"
+                f"\n\n--- REFERENCE SITE DESIGN ({reference_url}) ---\n"
+                "IMPORTANT: You MUST derive color_primary, color_accent, and color_action directly from "
+                "the CSS colors and custom properties listed below. Pick the 3 most prominent brand colors. "
+                "Also match the tone and style of the copy (tagline, headlines, descriptions) to this site.\n\n"
                 + style_hints
+                + "\n--- END REFERENCE SITE ---"
             )
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()

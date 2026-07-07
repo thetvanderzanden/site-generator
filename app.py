@@ -289,7 +289,7 @@ def slugify(name: str) -> str:
 @app.get("/debug-env")
 def debug_env():
     key = os.environ.get("ANTHROPIC_API_KEY", "")
-    return jsonify({"set": bool(key), "prefix": key[:10] if key else "", "length": len(key)})
+    return jsonify({"set": bool(key), "prefix": key[:10] if key else "", "length": len(key), "all_keys": [k for k in os.environ.keys() if "ANTHROPIC" in k.upper() or "API" in k.upper()]})
 
 @app.get("/")
 def index():

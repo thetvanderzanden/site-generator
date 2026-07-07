@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB
 
 
-TEMPLATE_DIR = os.getenv("TEMPLATE_PATH", str(Path(__file__).parent.parent / "Website Template"))
+TEMPLATE_DIR = os.getenv("TEMPLATE_PATH", str(Path(__file__).parent / "template"))
 OUTPUT_BASE  = os.getenv("OUTPUT_PATH",   str(Path(__file__).parent / "output"))
 
 ALLOWED_LOGO = {".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif", ".bmp", ".tiff", ".tif", ".ico", ".avif", ".heic", ".heif"}

@@ -286,6 +286,11 @@ def slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
+@app.get("/debug-env")
+def debug_env():
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    return jsonify({"set": bool(key), "prefix": key[:10] if key else "", "length": len(key)})
+
 @app.get("/")
 def index():
     return render_template_string(UPLOAD_FORM)

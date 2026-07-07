@@ -49,22 +49,68 @@ Business plan document:
 """
 
 
-def _fetch_style_hints(url: str) -> str:
-    """Fetch a page and return its CSS + meta content for color/tone analysis."""
+def _fetch_url(url: str, timeout: int = 8) -> str:
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            html = resp.read(80_000).decode("utf-8", errors="ignore")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.read(120_000).decode("utf-8", errors="ignore")
     except Exception:
         return ""
 
-    # Pull <style> blocks
-    styles = re.findall(r"<style[^>]*>(.*?)</style>", html, re.DOTALL | re.IGNORECASE)
-    # Pull meta description / og:description for tone
-    meta = re.findall(r'<meta[^>]+content=["\']([^"\']{10,})["\']', html, re.IGNORECASE)
 
-    combined = "\n".join(styles[:3]) + "\n" + "\n".join(meta[:5])
-    return combined[:6000]
+def _extract_colors(css: str) -> list:
+    hex_colors = re.findall(r'#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b', css)
+    rgb_colors = re.findall(r'rgb\([^)]+\)', css)
+    return list(dict.fromkeys(hex_colors + rgb_colors))[:40]
+
+
+def _fetch_style_hints(url: str) -> str:
+    """Fetch a page and its linked stylesheets; return colors + tone signals."""
+    from urllib.parse import urljoin
+    html = _fetch_url(url)
+    if not html:
+        return ""
+
+    parts = []
+
+    # Inline <style> blocks
+    inline_styles = re.findall(r"<style[^>]*>(.*?)</style>", html, re.DOTALL | re.IGNORECASE)
+    inline_css = "\n".join(inline_styles[:5])
+
+    # Linked external stylesheets (up to 3)
+    sheet_hrefs = re.findall(r'<link[^>]+href=["\']([^"\']+\.css[^"\']*)["\']', html, re.IGNORECASE)
+    external_css = ""
+    for href in sheet_hrefs[:3]:
+        css = _fetch_url(urljoin(url, href), timeout=6)
+        external_css += css[:30_000]
+
+    all_css = inline_css + "\n" + external_css
+
+    # CSS custom properties (brand tokens)
+    css_vars = re.findall(r'--[\w-]+\s*:\s*[^;]+;', all_css)
+    if css_vars:
+        parts.append("CSS custom properties (brand tokens):\n" + "\n".join(css_vars[:60]))
+
+    # All color values
+    colors = _extract_colors(all_css)
+    if colors:
+        parts.append("Colors found in CSS:\n" + ", ".join(colors))
+
+    # Font families
+    fonts = re.findall(r'font-family\s*:[^;]+;', all_css)
+    if fonts:
+        parts.append("Fonts: " + " | ".join(dict.fromkeys(fonts[:6])))
+
+    # Page title and meta for tone
+    title = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+    if title:
+        parts.append("Page title: " + title.group(1).strip())
+
+    metas = re.findall(r'<meta[^>]+content=["\']([^"\']{15,})["\']', html, re.IGNORECASE)
+    if metas:
+        parts.append("Meta content (tone/descriptions):\n" + "\n".join(metas[:6]))
+
+    return "\n\n".join(parts)[:8000]
 
 
 def extract_business_data(docx_path: str, reference_url: str | None = None) -> dict:

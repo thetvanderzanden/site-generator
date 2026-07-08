@@ -1,0 +1,138 @@
+name: Generate Site
+
+on:
+  workflow_dispatch:
+    inputs:
+      uuid:
+        description: 'Unique job ID (matches pending/{uuid}/ files in repo)'
+        required: true
+      reference_url:
+        description: 'Reference site URL for design/color cues'
+        required: false
+        default: ''
+      sections:
+        description: 'Comma-separated sections: about,services,team,contact'
+        required: false
+        default: 'about,services,team,contact'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Decode pending files
+        run: |
+          UUID="${{ inputs.uuid }}"
+          mkdir -p /tmp/pending
+
+          # Find logo (any extension)
+          LOGO_FILE=$(ls pending/${UUID}/logo.* 2>/dev/null | head -1)
+          if [ -z "$LOGO_FILE" ]; then
+            echo "ERROR: No logo file found in pending/${UUID}/"
+            exit 1
+          fi
+          cp "$LOGO_FILE" /tmp/pending/$(basename "$LOGO_FILE")
+          echo "LOGO_PATH=/tmp/pending/$(basename "$LOGO_FILE")" >> $GITHUB_ENV
+
+          cp pending/${UUID}/plan.docx /tmp/pending/plan.docx
+
+      - name: Generate site
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python generate_cli.py \
+            --logo "$LOGO_PATH" \
+            --docx /tmp/pending/plan.docx \
+            --reference "${{ inputs.reference_url }}" \
+            --sections "${{ inputs.sections }}" \
+            --output /tmp/sites \
+            | tee /tmp/gen_output.txt
+
+          # Capture outputs
+          grep '^SLUG='    /tmp/gen_output.txt | head -1 >> $GITHUB_ENV
+          grep '^COMPANY=' /tmp/gen_output.txt | head -1 >> $GITHUB_ENV
+
+      - name: Deploy to gh-pages
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Checkout or create gh-pages branch
+          git fetch origin gh-pages 2>/dev/null || true
+          git checkout gh-pages 2>/dev/null || git checkout --orphan gh-pages
+
+          # Create sites/ root index if it doesn't exist
+          mkdir -p sites
+
+          # Copy generated site into sites/{slug}/
+          cp -r /tmp/sites/${SLUG}/. sites/${SLUG}/
+
+          # Rebuild the sites index page
+          python3 - << 'PYEOF'
+          import json, os, pathlib
+
+          cards = []
+          for meta_path in sorted(pathlib.Path("sites").glob("*/_meta.json")):
+              m = json.loads(meta_path.read_text())
+              slug = m["slug"]
+              company = m["company"]
+              colors = m.get("colors", {})
+              primary = colors.get("primary", "#333")
+              cards.append(f"""
+              <div style="border:1px solid #ddd;border-radius:8px;padding:1.2rem;background:#fff">
+                <div style="width:32px;height:32px;border-radius:50%;background:{primary};margin-bottom:.75rem"></div>
+                <strong>{company}</strong><br>
+                <a href="sites/{slug}/" style="font-size:.85rem;color:#3A6FC4">View site →</a>
+              </div>""")
+
+          html = f"""<!DOCTYPE html>
+          <html lang="en">
+          <head><meta charset="UTF-8"><title>Generated Sites</title>
+          <style>body{{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;background:#f5f5f5}}
+          h1{{margin-bottom:1.5rem}} .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}}</style>
+          </head>
+          <body>
+          <h1>Generated Sites</h1>
+          <div class="grid">{''.join(cards)}</div>
+          </body></html>"""
+
+          pathlib.Path("index.html").write_text(html)
+          PYEOF
+
+          git add sites/${SLUG}/ index.html
+          git commit -m "Add generated site: ${COMPANY} (${SLUG})" || echo "Nothing to commit"
+          git push origin gh-pages
+
+      - name: Clean up pending files
+        run: |
+          git checkout main
+          git rm -r pending/${{ inputs.uuid }}/ 2>/dev/null || true
+          git commit -m "Clean up pending upload: ${{ inputs.uuid }}" || echo "Nothing to clean"
+          git push origin main
+
+      - name: Summary
+        run: |
+          REPO="${{ github.repository }}"
+          OWNER="${{ github.repository_owner }}"
+          echo "## ✅ Site Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Company:** ${COMPANY}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Live URL:** https://${OWNER}.github.io/site-generator/sites/${SLUG}/" >> $GITHUB_STEP_SUMMARY

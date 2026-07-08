@@ -1,12 +1,12 @@
 """
-Reads a .docx business plan and uses Claude to extract structured site data.
+Reads a .docx business plan and uses Groq (free tier) to extract structured site data.
 """
 
 import json
 import os
 import re
 import urllib.request
-import anthropic
+from groq import Groq
 from docx import Document
 
 
@@ -130,21 +130,20 @@ def extract_business_data(docx_path: str, reference_url: str | None = None) -> d
                 + "\n--- END REFERENCE SITE ---"
             )
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    api_key = os.environ.get("GROQ_API_KEY", "").strip()
     if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
+        raise ValueError("GROQ_API_KEY environment variable is not set")
 
-    client = anthropic.Anthropic(api_key=api_key)
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
+    client = Groq(api_key=api_key)
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
         max_tokens=1024,
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
     )
 
-    raw = message.content[0].text.strip()
-    # Strip markdown code fences if Claude wrapped the JSON
+    raw = response.choices[0].message.content.strip()
+    # Strip markdown code fences if the model wrapped the JSON
     if raw.startswith("```"):
         raw = re.sub(r"^```[a-z]*\n?", "", raw)
         raw = re.sub(r"\n?```$", "", raw)

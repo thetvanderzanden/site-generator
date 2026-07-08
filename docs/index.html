@@ -286,6 +286,21 @@
     // Load PAT status on page load
     document.addEventListener("DOMContentLoaded", showPatStatus);
 
+    // ── Find newest generated slug from gh-pages ──────────────────────────────
+    async function findNewestSlug() {
+      try {
+        const res = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/sites?ref=gh-pages`,
+          { headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/vnd.github+json" } }
+        );
+        if (!res.ok) return null;
+        const dirs = await res.json();
+        if (!Array.isArray(dirs) || dirs.length === 0) return null;
+        // Return the last entry (most recently committed)
+        return dirs[dirs.length - 1].name;
+      } catch { return null; }
+    }
+
     // ── Main ──────────────────────────────────────────────────────────────────
     async function generate() {
       const logoFile = document.getElementById("logo").files[0];
@@ -325,13 +340,16 @@
         });
 
         setProgress(100);
-        setStatus("Done!", "success");
 
-        // We don't know the slug here, but we can read it from the run summary.
-        // Show the sites index as fallback — user can navigate from there.
+        // Find the slug by checking which sites/ subdirs exist on gh-pages
+        const slug = await findNewestSlug();
+        const link = slug
+          ? `${PAGES_BASE}/sites/${slug}/`
+          : `${PAGES_BASE}/sites/`;
+
+        setStatus("Done!", "success");
         document.getElementById("result").style.display = "block";
-        document.getElementById("resultCompany").textContent = logoFile.name.replace(/\.[^.]+$/, "");
-        const link = `${PAGES_BASE}/sites/`;
+        document.getElementById("resultCompany").textContent = slug || "your site";
         document.getElementById("resultLink").href = link;
         document.getElementById("resultLink").textContent = link;
 

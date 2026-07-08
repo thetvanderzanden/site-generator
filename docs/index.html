@@ -109,6 +109,14 @@
     <div class="card-sub">Powered by AI — usually ready in 60 seconds</div>
     <div class="modal-divider"></div>
 
+    <div class="field" id="patField">
+      <label>GitHub Token <span id="patStatus" style="font-weight:400;text-transform:none;color:#2e7d32"></span></label>
+      <div style="display:flex;gap:.5rem">
+        <input type="password" id="patInput" placeholder="github_pat_…" style="flex:1" />
+        <button type="button" onclick="savePat()" style="width:auto;padding:.7rem 1rem;margin:0;font-size:.85rem">Save</button>
+      </div>
+    </div>
+
     <div class="field">
       <label>Company Logo</label>
       <input type="file" id="logo" accept="image/*" required />
@@ -153,7 +161,7 @@
   <script>
     // ── Config ────────────────────────────────────────────────────────────────
     // Fine-grained PAT with: contents=write, actions=write on this repo only
-    const GITHUB_TOKEN = "PASTE_YOUR_GITHUB_PAT_HERE";
+    const GITHUB_TOKEN = localStorage.getItem("sg_github_pat") || "";
     const REPO_OWNER   = "thetvanderzanden";
     const REPO_NAME    = "site-generator";
     const PAGES_BASE   = `https://${REPO_OWNER}.github.io/${REPO_NAME}`;
@@ -253,6 +261,30 @@
       document.getElementById("progressWrap").style.display = "block";
       document.getElementById("progressBar").style.width = pct + "%";
     }
+
+    // ── PAT management ───────────────────────────────────────────────────────
+    function savePat() {
+      const val = document.getElementById("patInput").value.trim();
+      if (!val) return;
+      localStorage.setItem("sg_github_pat", val);
+      document.getElementById("patInput").value = "";
+      showPatStatus();
+    }
+
+    function showPatStatus() {
+      const stored = localStorage.getItem("sg_github_pat");
+      const status = document.getElementById("patStatus");
+      if (stored) {
+        status.textContent = "✓ saved";
+        status.style.color = "#2e7d32";
+        document.getElementById("patInput").placeholder = "token saved — paste new one to replace";
+      } else {
+        status.textContent = "";
+      }
+    }
+
+    // Load PAT status on page load
+    document.addEventListener("DOMContentLoaded", showPatStatus);
 
     // ── Main ──────────────────────────────────────────────────────────────────
     async function generate() {

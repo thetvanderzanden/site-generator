@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Site Generator</title>
+  <style>
+    :root {
+      --purple: #4B2882; --magenta: #C0245A; --blue: #3A6FC4;
+      --dark: #1A1A2E; --light-bg: #F7F6FA; --white: #FFFFFF;
+      --text: #2D2D3A; --text-light: #666680;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--light-bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+    }
+    header {
+      background: linear-gradient(135deg, #1A1A2E 0%, #2C1654 50%, #1E3C72 100%);
+      padding: 2.5rem 2rem; text-align: center;
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(192,36,90,0.2); border: 1px solid rgba(192,36,90,0.4);
+      color: #F06090; font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 0.35rem 0.9rem; border-radius: 20px; margin-bottom: 1rem;
+    }
+    header h1 { font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: .5rem; }
+    header h1 span {
+      background: linear-gradient(90deg, #E0609A, #6B9FE4);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    header p { font-size: .95rem; color: rgba(255,255,255,.65); max-width: 440px; margin: 0 auto; }
+    .gradient-divider { height: 4px; background: linear-gradient(90deg, var(--purple), var(--magenta), var(--blue)); }
+    main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
+    .card {
+      background: var(--white); border-radius: 18px; padding: 2.5rem;
+      width: 100%; max-width: 520px; box-shadow: 0 8px 40px rgba(74,40,130,0.12);
+    }
+    .card-title { font-size: 1.3rem; font-weight: 800; color: var(--dark); }
+    .card-sub { font-size: .9rem; color: var(--text-light); margin-top: .3rem; }
+    .modal-divider {
+      height: 3px; border-radius: 2px;
+      background: linear-gradient(90deg, var(--purple), var(--magenta), var(--blue));
+      margin: 1.25rem 0;
+    }
+    .field { margin-bottom: 1.2rem; }
+    label {
+      display: block; font-size: .82rem; font-weight: 600; color: var(--dark);
+      text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem;
+    }
+    input[type="text"], input[type="url"], input[type="file"] {
+      width: 100%; background: var(--white); border: 1.5px solid #DDD;
+      border-radius: 8px; padding: .7rem 1rem; color: var(--text);
+      font-size: .95rem; font-family: inherit; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input[type="text"]:focus, input[type="url"]:focus {
+      border-color: var(--purple); box-shadow: 0 0 0 3px rgba(74,40,130,0.12);
+    }
+    .section-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: 1.2rem; }
+    .toggle-item {
+      display: flex; align-items: center; gap: .6rem;
+      background: var(--light-bg); border: 1.5px solid #DDD;
+      border-radius: 8px; padding: .6rem .9rem;
+      cursor: pointer; transition: border-color .2s, background .2s; user-select: none;
+    }
+    .toggle-item:has(input:checked) { border-color: var(--purple); background: rgba(74,40,130,0.06); }
+    .toggle-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--purple); cursor: pointer; }
+    .toggle-item span { font-size: .88rem; font-weight: 600; color: var(--text); }
+    button {
+      width: 100%; padding: .9rem 2rem;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      color: var(--white); border: none; border-radius: 8px;
+      font-size: 1rem; font-weight: 700; font-family: inherit; cursor: pointer;
+      transition: opacity .2s, transform .2s;
+      box-shadow: 0 4px 18px rgba(74,40,130,0.3); margin-top: .5rem;
+    }
+    button:hover { opacity: .9; transform: translateY(-1px); }
+    button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+    #status { margin-top: 1.2rem; font-size: .9rem; color: var(--blue); min-height: 1.4rem; text-align: center; }
+    .error { color: var(--magenta) !important; }
+    .success { color: #2e7d32 !important; }
+    #result {
+      display: none; margin-top: 1.5rem; padding: 1.2rem;
+      background: #f0f7f0; border: 1.5px solid #c8e6c9; border-radius: 10px;
+    }
+    #result a { color: var(--blue); font-weight: 600; word-break: break-all; }
+    .progress-bar-wrap {
+      display: none; height: 6px; background: #e0e0e0; border-radius: 3px; margin-top: .75rem; overflow: hidden;
+    }
+    .progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--purple), var(--blue)); border-radius: 3px; transition: width .4s; }
+    footer { background: var(--dark); color: rgba(255,255,255,.5); padding: 1.25rem 2rem; text-align: center; font-size: .82rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-badge">Rogue Coding — Internal Tool</div>
+    <h1>Site <span>Generator</span></h1>
+    <p>Upload a logo and business plan to generate a ready-to-deploy website.</p>
+  </header>
+  <div class="gradient-divider"></div>
+
+  <main>
+  <div class="card">
+    <div class="card-title">Build a New Site</div>
+    <div class="card-sub">Powered by AI — usually ready in 60 seconds</div>
+    <div class="modal-divider"></div>
+
+    <div class="field" id="patField">
+      <label>GitHub Token <span id="patStatus" style="font-weight:400;text-transform:none;color:#2e7d32"></span></label>
+      <div style="display:flex;gap:.5rem">
+        <input type="password" id="patInput" placeholder="github_pat_…" style="flex:1" />
+        <button type="button" onclick="savePat()" style="width:auto;padding:.7rem 1rem;margin:0;font-size:.85rem">Save</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Company Logo</label>
+      <input type="file" id="logo" accept="image/*" required />
+    </div>
+
+    <div class="field">
+      <label>Business Plan (.docx)</label>
+      <input type="file" id="docx" accept=".docx" required />
+    </div>
+
+    <div class="field">
+      <label>Reference Site URL <span style="font-weight:400;text-transform:none">(optional — for design cues)</span></label>
+      <input type="url" id="refUrl" placeholder="https://example.com" />
+    </div>
+
+    <label style="display:block;font-size:.82rem;font-weight:600;color:var(--dark);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">
+      Sections to Include
+    </label>
+    <div class="section-toggles">
+      <label class="toggle-item"><input type="checkbox" value="about"    checked /><span>About</span></label>
+      <label class="toggle-item"><input type="checkbox" value="services" checked /><span>Services</span></label>
+      <label class="toggle-item"><input type="checkbox" value="team"     checked /><span>Team</span></label>
+      <label class="toggle-item"><input type="checkbox" value="contact"  checked /><span>Contact</span></label>
+    </div>
+
+    <button id="submitBtn" onclick="generate()">Generate Site</button>
+
+    <div class="progress-bar-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+    <div id="status"></div>
+
+    <div id="result">
+      <strong>🎉 Site is live!</strong><br><br>
+      <span id="resultCompany"></span><br><br>
+      <a id="resultLink" href="#" target="_blank">View your site →</a><br><br>
+      <small style="color:#666">It may take 1–2 minutes for GitHub Pages to publish the new site.</small>
+    </div>
+  </div>
+  </main>
+
+  <footer>&copy; 2026 Rogue Coding &mdash; Internal Use Only</footer>
+
+  <script>
+    // ── Config ────────────────────────────────────────────────────────────────
+    // Fine-grained PAT with: contents=write, actions=write on this repo only
+    const GITHUB_TOKEN = localStorage.getItem("sg_github_pat") || "";
+    const REPO_OWNER   = "thetvanderzanden";
+    const REPO_NAME    = "site-generator";
+    const PAGES_BASE   = `https://${REPO_OWNER}.github.io/${REPO_NAME}`;
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function uuid() {
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+    }
+
+    function toBase64(file) {
+      return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result.split(",")[1]);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+    }
+
+    async function githubPut(path, content, message) {
+      const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message, content }),
+      });
+      if (!res.ok) throw new Error(`GitHub upload failed: ${res.status} ${await res.text()}`);
+    }
+
+    async function triggerWorkflow(inputs) {
+      const res = await fetch(
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/generate-site.yml/dispatches`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ref: "main", inputs }),
+        }
+      );
+      if (!res.ok) throw new Error(`Workflow trigger failed: ${res.status} ${await res.text()}`);
+    }
+
+    async function pollWorkflow(jobId, onProgress) {
+      // Poll runs list, match by created_at proximity, wait for completion
+      const start = Date.now();
+      let runId = null;
+
+      // Find the run we just triggered (created in last 30s)
+      for (let i = 0; i < 20; i++) {
+        await sleep(3000);
+        const res = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=5`,
+          { headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" } }
+        );
+        const data = await res.json();
+        const recent = (data.workflow_runs || []).find(r =>
+          r.name === "Generate Site" &&
+          new Date(r.created_at).getTime() > start - 10000
+        );
+        if (recent) { runId = recent.id; break; }
+      }
+
+      if (!runId) throw new Error("Could not find the triggered workflow run.");
+
+      // Poll until done
+      for (let i = 0; i < 60; i++) {
+        await sleep(5000);
+        const res = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs/${runId}`,
+          { headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" } }
+        );
+        const run = await res.json();
+        onProgress(run.status, i);
+        if (run.status === "completed") {
+          if (run.conclusion === "success") return;
+          throw new Error(`Workflow failed: ${run.conclusion}. Check Actions tab in GitHub.`);
+        }
+      }
+      throw new Error("Timed out waiting for workflow. Check GitHub Actions.");
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function setStatus(msg, cls = "") {
+      const el = document.getElementById("status");
+      el.textContent = msg;
+      el.className = cls;
+    }
+
+    function setProgress(pct) {
+      document.getElementById("progressWrap").style.display = "block";
+      document.getElementById("progressBar").style.width = pct + "%";
+    }
+
+    // ── PAT management ───────────────────────────────────────────────────────
+    function savePat() {
+      const val = document.getElementById("patInput").value.trim();
+      if (!val) return;
+      localStorage.setItem("sg_github_pat", val);
+      document.getElementById("patInput").value = "";
+      showPatStatus();
+    }
+
+    function showPatStatus() {
+      const stored = localStorage.getItem("sg_github_pat");
+      const status = document.getElementById("patStatus");
+      if (stored) {
+        status.textContent = "✓ saved";
+        status.style.color = "#2e7d32";
+        document.getElementById("patInput").placeholder = "token saved — paste new one to replace";
+      } else {
+        status.textContent = "";
+      }
+    }
+
+    // Load PAT status on page load
+    document.addEventListener("DOMContentLoaded", showPatStatus);
+
+    // ── Main ──────────────────────────────────────────────────────────────────
+    async function generate() {
+      const logoFile = document.getElementById("logo").files[0];
+      const docxFile = document.getElementById("docx").files[0];
+      const refUrl   = document.getElementById("refUrl").value.trim();
+      const sections = [...document.querySelectorAll(".section-toggles input:checked")]
+                         .map(i => i.value).join(",");
+
+      if (!logoFile) return setStatus("Please select a logo file.", "error");
+      if (!docxFile) return setStatus("Please select a .docx business plan.", "error");
+      if (GITHUB_TOKEN === "PASTE_YOUR_GITHUB_PAT_HERE")
+        return setStatus("GitHub token not configured — see setup instructions.", "error");
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      document.getElementById("result").style.display = "none";
+
+      try {
+        const jobId = uuid();
+        const logoExt = logoFile.name.substring(logoFile.name.lastIndexOf("."));
+
+        setStatus("Encoding files…"); setProgress(10);
+        const [logoB64, docxB64] = await Promise.all([toBase64(logoFile), toBase64(docxFile)]);
+
+        setStatus("Uploading files to GitHub…"); setProgress(25);
+        await githubPut(`pending/${jobId}/logo${logoExt}`, logoB64, `Upload: logo for ${jobId}`);
+        await githubPut(`pending/${jobId}/plan.docx`,      docxB64, `Upload: plan for ${jobId}`);
+
+        setStatus("Triggering site generation…"); setProgress(35);
+        await triggerWorkflow({ uuid: jobId, reference_url: refUrl, sections });
+
+        setStatus("Generating… (this takes ~60 seconds)"); setProgress(50);
+        await pollWorkflow(jobId, (status, tick) => {
+          const pct = Math.min(50 + tick * 2, 92);
+          setProgress(pct);
+          setStatus(`Generating… (${status})`);
+        });
+
+        setProgress(100);
+        setStatus("Done!", "success");
+
+        // We don't know the slug here, but we can read it from the run summary.
+        // Show the sites index as fallback — user can navigate from there.
+        document.getElementById("result").style.display = "block";
+        document.getElementById("resultCompany").textContent = logoFile.name.replace(/\.[^.]+$/, "");
+        const link = `${PAGES_BASE}/sites/`;
+        document.getElementById("resultLink").href = link;
+        document.getElementById("resultLink").textContent = link;
+
+      } catch (err) {
+        setStatus("Error: " + err.message, "error");
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

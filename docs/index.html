@@ -161,7 +161,7 @@
   <script>
     // ── Config ────────────────────────────────────────────────────────────────
     // Fine-grained PAT with: contents=write, actions=write on this repo only
-    const GITHUB_TOKEN = localStorage.getItem("sg_github_pat") || "";
+    const getToken = () => localStorage.getItem("sg_github_pat") || "";
     const REPO_OWNER   = "thetvanderzanden";
     const REPO_NAME    = "site-generator";
     const PAGES_BASE   = `https://${REPO_OWNER}.github.io/${REPO_NAME}`;
@@ -185,7 +185,7 @@
       const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Authorization: `Bearer ${getToken()}`,
           Accept: "application/vnd.github+json",
           "Content-Type": "application/json",
         },
@@ -200,7 +200,7 @@
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${GITHUB_TOKEN}`,
+            Authorization: `Bearer ${getToken()}`,
             Accept: "application/vnd.github+json",
             "Content-Type": "application/json",
           },
@@ -220,7 +220,7 @@
         await sleep(3000);
         const res = await fetch(
           `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=5`,
-          { headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" } }
+          { headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/vnd.github+json" } }
         );
         const data = await res.json();
         const recent = (data.workflow_runs || []).find(r =>
@@ -237,7 +237,7 @@
         await sleep(5000);
         const res = await fetch(
           `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs/${runId}`,
-          { headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: "application/vnd.github+json" } }
+          { headers: { Authorization: `Bearer ${getToken()}`, Accept: "application/vnd.github+json" } }
         );
         const run = await res.json();
         onProgress(run.status, i);
@@ -296,7 +296,7 @@
 
       if (!logoFile) return setStatus("Please select a logo file.", "error");
       if (!docxFile) return setStatus("Please select a .docx business plan.", "error");
-      if (GITHUB_TOKEN === "PASTE_YOUR_GITHUB_PAT_HERE")
+      if (!getToken())
         return setStatus("GitHub token not configured — see setup instructions.", "error");
 
       const btn = document.getElementById("submitBtn");
